@@ -1,0 +1,98 @@
+variable "aws_region" {
+  type    = string
+  default = "us-east-1"
+}
+
+variable "source_ami" {
+  type    = string
+  default = "ami-08c40ec9ead489470" # Ubuntu 22.04 LTS
+}
+
+variable "ssh_username" {
+  type    = string
+  default = "ubuntu"
+}
+
+variable "subnet_id" {
+  type    = string
+  default = "subnet-07ee1f76c6f419f2f"
+#  default = "subnet-07cb68f7903b7eded"
+}
+
+variable "aws_access_key" {
+  type    = string
+  default = ""
+}
+
+variable "aws_secret_key" {
+  type    = string
+  default = ""
+}
+
+variable "vpc_id" {
+  type    = string
+  default = "vpc-0223ef4e03391969b"
+#  default = "vpc-0c13b923cadb895e6"
+}
+
+variable "git_repo" {
+  type    = string
+  default = "../"
+}
+
+# https://www.packer.io/plugins/builders/amazon/ebs
+source "amazon-ebs" "my-ami" {
+  access_key      = "${var.aws_access_key}"
+  region          = "${var.aws_region}"
+  ami_name        = "csye6225_${formatdate("YYYY_MM_DD_hh_mm_ss", timestamp())}"
+  ami_users       = ["092997680540", "237103580865"]
+  ami_description = "AMI for CSYE 6225"
+  ami_regions = [
+    "us-east-1",
+  ]
+
+  aws_polling {
+    delay_seconds = 120
+    max_attempts  = 50
+  }
+
+
+  instance_type = "t2.micro"
+  secret_key    = "${var.aws_secret_key}"
+  source_ami    = "${var.source_ami}"
+  ssh_username  = "${var.ssh_username}"
+  subnet_id     = "${var.subnet_id}"
+  vpc_id        = "${var.vpc_id}"
+
+  launch_block_device_mappings {
+    delete_on_termination = true
+    device_name           = "/dev/sda1"
+    volume_size           = 8
+    volume_type           = "gp2"
+  }
+}
+
+build {
+  sources = ["source.amazon-ebs.my-ami"]
+
+  provisioner "file" {
+    source = "../"
+    destination = "~/"
+  }
+
+  provisioner "shell" {
+    environment_vars = [
+      "DEBIAN_FRONTEND=noninteractive",
+      "CHECKPOINT_DISABLE=1"
+    ]
+    script = "app-server.sh"
+  }
+
+  post-processor "manifest" {
+    output = "manifest.json"
+    strip_path = true
+    custom_data = {
+      my_custom_data = "example"
+    }
+  }
+}

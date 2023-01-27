@@ -1,0 +1,35 @@
+name: Code Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  lamda:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.DEMO_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEMO_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Build Deployment artifacts
+        run: |
+          zip -r EmailSenderLambda.zip index.js
+      - name: Copy Artifacts to S3
+        run: |
+          aws s3 cp EmailSenderLambda.zip s3://codedeployforlambda2
+      - name: Update lambdaFunction code
+        run: |
+          aws lambda update-function-code --function-name EmailSenderLambda --s3-bucket codedeployforlambda2 --s3-key EmailSenderLambda.zip

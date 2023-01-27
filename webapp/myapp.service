@@ -1,0 +1,16 @@
+[Unit]
+Description=Web app for Cloud Network
+After=syslog.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/workspace/application/
+ExecStart=/bin/java -Xms128m -Xmx256m -jar cloudapp-0.0.1-SNAPSHOT.jar --spring.config.location=application-demo.properties
+StandardOutput=file:/home/ubuntu/logs/csye6225.log
+StandardError=file:/home/ubuntu/logs/csye6225.log
+Type=simple
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
